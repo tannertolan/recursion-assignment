@@ -5,30 +5,24 @@ import os
 # =========================
 
 def sum_list(nums):
-    """
-    Recursively sum a list of numbers.
-    """
-    if nums is None or len(nums) == 0:
+    """Recursively sum a list of numbers."""
+    if not nums:
         return 0
     return nums[0] + sum_list(nums[1:])
 
 
 def count_occurrences(nums, target):
-    """
-    Recursively count how many times target appears in nums.
-    """
-    if nums is None or len(nums) == 0:
+    """Recursively count how many times target appears in nums."""
+    if not nums:
         return 0
     return (1 if nums[0] == target else 0) + count_occurrences(nums[1:], target)
 
 
 def factorial(n):
-    """
-    Recursively compute n!.
-    """
+    """Recursively compute n!."""
     if n < 0:
         raise ValueError("factorial is undefined for negative numbers")
-    if n == 0 or n == 1:
+    if n in (0, 1):
         return 1
     return n * factorial(n - 1)
 
@@ -40,6 +34,7 @@ def factorial(n):
 def count_files(directory_path):
     """
     Recursively count all files in a directory tree.
+    Returns 0 if directory_path doesn't exist or can't be accessed.
     """
     total = 0
 
@@ -50,7 +45,6 @@ def count_files(directory_path):
 
     for name in entries:
         full_path = os.path.join(directory_path, name)
-
         if os.path.isfile(full_path):
             total += 1
         elif os.path.isdir(full_path):
@@ -77,11 +71,9 @@ def find_infected_files(directory_path, extension=".encrypted"):
 
     for name in entries:
         full_path = os.path.join(directory_path, name)
-
         if os.path.isfile(full_path):
             if name.endswith(extension):
                 infected.append(full_path)
-
         elif os.path.isdir(full_path):
             infected.extend(find_infected_files(full_path, extension))
 
@@ -92,63 +84,81 @@ def find_infected_files(directory_path, extension=".encrypted"):
 # MAIN (tests + breach analysis)
 # =========================
 if __name__ == "__main__":
+    BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+
+    # Paths to generated data
+    TEST_CASES_DIR = os.path.join(BASE_DIR, "test_cases")
+    BREACH_DIR = os.path.join(BASE_DIR, "breach_data")
+
+    # Your generator uses these names (based on your output)
+    tc1 = os.path.join(TEST_CASES_DIR, "case1_flat")
+    tc2 = os.path.join(TEST_CASES_DIR, "case2_nested")
+    tc3 = os.path.join(TEST_CASES_DIR, "case3_infected")
 
     print("=====================================")
     print("PART 1 TESTS: RECURSION WARM UP")
     print("=====================================")
-
     print("sum_list([1,2,3]) expected 6 ->", sum_list([1, 2, 3]))
     print("count_occurrences([1,2,2,3],2) expected 2 ->", count_occurrences([1, 2, 2, 3], 2))
     print("factorial(5) expected 120 ->", factorial(5))
 
-
     print("\n=====================================")
     print("PART 2 TESTS: COUNT ALL FILES")
     print("=====================================")
-
-    print("Test Case 1 expected 5 ->", count_files("test_cases/test_case_1"))
-    print("Test Case 2 expected 4 ->", count_files("test_cases/test_case_2"))
-    print("Test Case 3 expected 5 ->", count_files("test_cases/test_case_3"))
-
+    print("Test Case 1 expected 5 ->", count_files(tc1))
+    print("Test Case 2 expected 4 ->", count_files(tc2))
+    print("Test Case 3 expected 5 ->", count_files(tc3))
 
     print("\n=====================================")
     print("PART 3 TESTS: FIND INFECTED FILES")
     print("=====================================")
-
-    print("Test Case 1 expected 0 ->", len(find_infected_files("test_cases/test_case_1", ".encrypted")))
-    print("Test Case 2 expected 0 ->", len(find_infected_files("test_cases/test_case_2", ".encrypted")))
-    print("Test Case 3 expected 3 ->", len(find_infected_files("test_cases/test_case_3", ".encrypted")))
-
+    print("Test Case 1 expected 0 ->", len(find_infected_files(tc1, ".encrypted")))
+    print("Test Case 2 expected 0 ->", len(find_infected_files(tc2, ".encrypted")))
+    print("Test Case 3 expected 3 ->", len(find_infected_files(tc3, ".encrypted")))
 
     print("\n=====================================")
     print("BREACH DATA ANALYSIS")
     print("=====================================")
 
-    company_root = "breach_data"
+    if not os.path.exists(BREACH_DIR):
+        print("breach_data folder not found.")
+    else:
+        total_files = count_files(BREACH_DIR)
+        infected_files = find_infected_files(BREACH_DIR, ".encrypted")
 
-    total_files = count_files(company_root)
-    infected_files = find_infected_files(company_root, ".encrypted")
+        print("Total files in company system:", total_files)
+        print("Total infected files:", len(infected_files))
 
-    print("Total files in company system:", total_files)
-    print("Total infected files:", len(infected_files))
+        # Print only a small sample to avoid terminal spam
+        sample_n = 20
+        print(f"\nShowing first {sample_n} infected file paths (out of {len(infected_files)}):")
+        for path in infected_files[:sample_n]:
+            print(path)
 
-    print("\nFull paths to infected files:")
-    for f in infected_files:
-        print(f)
+        # Save full list to a file (useful for submission evidence)
+        out_path = os.path.join(BASE_DIR, "infected_files.txt")
+        with open(out_path, "w", encoding="utf-8") as f:
+            for path in infected_files:
+                f.write(path + "\n")
+        print("\nSaved full infected file list to:", out_path)
 
+        print("\n=====================================")
+        print("TOP-LEVEL BREAKDOWN (hit hardest)")
+        print("=====================================")
 
-    print("\n=====================================")
-    print("DEPARTMENT BREAKDOWN")
-    print("=====================================")
+        top_level_folders = [
+            name for name in os.listdir(BREACH_DIR)
+            if os.path.isdir(os.path.join(BREACH_DIR, name))
+        ]
 
-    departments = ["Finance", "HR", "Sales"]
+        if not top_level_folders:
+            print("No top-level folders found under breach_data.")
+        else:
+            area_counts = {}
+            for folder in sorted(top_level_folders):
+                folder_path = os.path.join(BREACH_DIR, folder)
+                area_counts[folder] = len(find_infected_files(folder_path, ".encrypted"))
+                print(folder, "infected files:", area_counts[folder])
 
-    dept_counts = {}
-    for dept in departments:
-        dept_path = os.path.join(company_root, dept)
-        dept_infected = find_infected_files(dept_path, ".encrypted")
-        dept_counts[dept] = len(dept_infected)
-        print(dept, "infected files:", len(dept_infected))
-
-    hardest_hit = max(dept_counts, key=dept_counts.get)
-    print("\nMost infected department:", hardest_hit, "with", dept_counts[hardest_hit], "infected files")
+            worst_area = max(area_counts, key=area_counts.get)
+            print("\nMost infected area:", worst_area, "with", area_counts[worst_area], "infected files")
